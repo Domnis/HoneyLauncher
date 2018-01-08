@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.support.v4.content.AsyncTaskLoader
-import com.sylvainroux.honeylauncher.data.manager.AppsManager.AppsLoader.Companion.ALPHA_COMPARATOR
 import com.sylvainroux.honeylauncher.data.model.AppModel
 import java.text.Collator
 import java.util.*
@@ -14,21 +13,32 @@ import java.util.*
  * Created by sylvain.roux
  * on 05/01/2018.
  */
-class AppsManager private constructor (val context: Context) {
+class AppsManager private constructor(val context: Context) {
+
+    var appLoader: AppsLoader? = null
 
     init {
-        //nothing to do yet
+        appLoader = AppsLoader(context)
+        appLoader?.startLoading()
     }
 
     companion object : SingletonHolder<AppsManager, Context>(::AppsManager)
 
-    fun getApps() {
+    fun getApps() : ArrayList<AppModel>?{
+        return appLoader?.mInstalledApps
     }
 
     inner class AppsLoader(context: Context) : AsyncTaskLoader<ArrayList<AppModel>>(context) {
         var mInstalledApps: ArrayList<AppModel>? = null
 
         private val packageManager: PackageManager = context.packageManager
+
+        private val alphaComparator: Comparator<AppModel> = object : Comparator<AppModel> {
+            private val sCollator = Collator.getInstance()
+            override fun compare(object1: AppModel, object2: AppModel): Int {
+                return sCollator.compare(object1.getLabel(), object2.getLabel())
+            }
+        }
 
         init {
         }
@@ -54,7 +64,7 @@ class AppsManager private constructor (val context: Context) {
             }
 
             // sort the list
-            Collections.sort(items, ALPHA_COMPARATOR)
+            Collections.sort(items, alphaComparator)
             return items
         }
 
@@ -130,19 +140,6 @@ class AppsManager private constructor (val context: Context) {
          */
         protected fun onReleaseResources(apps: ArrayList<AppModel>) {
             // do nothing
-        }
-
-        companion object {
-
-            /**
-             * Perform alphabetical comparison of application entry objects.
-             */
-            val ALPHA_COMPARATOR: Comparator<AppModel> = object : Comparator<AppModel> {
-                private val sCollator = Collator.getInstance()
-                override fun compare(object1: AppModel, object2: AppModel): Int {
-                    return sCollator.compare(object1.getLabel(), object2.getLabel())
-                }
-            }
         }
     }
 }
